@@ -22,6 +22,7 @@
 package org.obeliks.tokenizer;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Scanner;
 import java.util.regex.Matcher;
@@ -32,59 +33,108 @@ public class Rules
 {
     private static class TokenizerRegex
     {
-        public Pattern mRegex;
-        public boolean mVal;
-        public boolean mTxt;
-        public String mRhs;
+        public Pattern regex;
+        public boolean val;
+        public boolean txt;
+        public String rhs;
     }
 
-    private static ArrayList<TokenizerRegex> mTokRulesPart1
-        = LoadRules("TokRulesPart1.txt");
-    private static ArrayList<TokenizerRegex> mTokRulesPart2
-        = LoadRules("TokRulesPart2.txt");
+    private static ArrayList<TokenizerRegex> tokRulesPart1
+        = loadRules("TokRulesPart1.txt");
+    private static ArrayList<TokenizerRegex> tokRulesPart2
+        = loadRules("TokRulesPart2.txt");
 
-    private static HashSet<String> mAbbrvSeq
-        = LoadList("ListOSeq.txt");
-    private static HashSet<String> mAbbrvSegSeq
-        = LoadList("ListOSegSeq.txt");
-    private static HashSet<String> mAbbrvNoSegSeq
-        = LoadList("ListONoSegSeq.txt");
+    private static HashSet<String> abbrvSeq
+        = loadList("ListOSeq.txt");
+    private static HashSet<String> abbrvSegSeq
+        = loadList("ListOSegSeq.txt");
+    private static HashSet<String> abbrvNoSegSeq
+        = loadList("ListONoSegSeq.txt");
+    private static HashSet<String> abbrvExcl
+        = loadList("ListOExcl.txt");
+    private static HashSet<String> abbrvExclCS
+        = loadList("ListOExclCS.txt");
+    private static HashSet<String> abbrvSeg
+        = loadList("ListOSeg.txt");
 
-    private static Pattern mTagRegex
+    private static ArrayList<Integer> abbrvSeqLen
+        = new ArrayList<Integer>();
+
+    private static Pattern tagRegex
         = Pattern.compile("\\</?[^>]+\\>");
-    private static Pattern mAbbrvRegex
+    private static Pattern abbrvRegex
         = Pattern.compile("<w>(\\p{L}+)</w><c>\\.</c>");
-    private static Pattern mEndOfSentenceRegex
+    private static Pattern endOfSentenceRegex
         = Pattern.compile("^<[wc]>[\\p{Lu}\"»“‘'0-9]$");
+    private static Pattern abbrvExclRegex
+        = Pattern.compile("(?<step><w>(?<word>\\p{L}+)</w><c>\\.</c>(?<tail><S/>)?)(?<ctx>(</[ps]>)|(<[wc]>.))");
 
-    public static String Tokenize(String text) {
-        String xml = ExecRules(text, mTokRulesPart1);
-        //for (int len : mAbbrvSeqLen) {
-        //    xml = ProcessAbbrvSeq(xml, len);
-        //}
-        //xml = ProcessAbbrvExcl(xml);
-        //xml = ProcessAbbrvOther(xml);
-        xml = ExecRules(xml, mTokRulesPart2);
+    static {
+        HashSet<Integer> lengths = new HashSet<Integer>();
+        for (String abbrv : abbrvSeq) {
+            int len = 0;
+            for (char ch : abbrv.toCharArray()) {
+                if (ch == '.') { len++; }
+            }
+            lengths.add(len);
+        }
+        abbrvSeqLen = new ArrayList<Integer>(lengths);
+        Collections.sort(abbrvSeqLen, Collections.reverseOrder());
+    }
+
+    public static String tokenize(String text) {
+        String xml = execRules(text, tokRulesPart1);
+        for (int len : abbrvSeqLen) {
+            xml = processAbbrvSeq(xml, len);
+        }
+        xml = processAbbrvExcl(xml);
+        //xml = processAbbrvOther(xml);
+        xml = execRules(xml, tokRulesPart2);
         xml = xml.replace("<!s/>", "");
         return "<text>" + xml + "</text>";
     }
 
-    static String ProcessAbbrvSeq(String txt, int seqLen) {
+    static String processAbbrvExcl(String txt) {
+        int idx = 0;
+        StringBuilder s = new StringBuilder();
+        Matcher m = abbrvExclRegex.matcher(txt);
+        while (m.find(idx)) {
+            s.append(txt.substring(idx, m.start() - idx));
+            String xml;
+            String word = m.group("word");
+            String wordLower = word.toLowerCase();
+            if (word.length() == 1 || abbrvExcl.contains(wordLower) || abbrvExclCS.contains(word)) {
+                xml = "<w>" + m.group("word") + ".</w>" + m.group("tail");
+                idx = m.start() + m.group("step").length();
+                if (abbrvSeg.contains(wordLower) && endOfSentenceRegex.matcher(m.group("ctx")).find()) {
+                    xml += "</s><s>";
+                }
+            } else {
+                xml = m.group("step");
+                idx = m.start() + xml.length();
+            }
+            s.append(xml);
+        }
+        s.append(txt.substring(idx, txt.length() - idx));
+        return s.toString();
+    }
+
+    static String processAbbrvSeq(String txt, int seqLen) {
         int idx = 0;
         StringBuilder s = new StringBuilder();
         Pattern regex = Pattern.compile("(?<jump>(?<step><w>\\p{L}+</w><c>\\.</c>(<S/>)?)(<w>\\p{L}+</w><c>\\.</c>(<S/>)?){" + (seqLen - 1) + "})(?<ctx>(</[ps]>)|(<[wc]>.))");
         Matcher m = regex.matcher(txt);
-        while (m.find()) {
+        while (m.find(idx)) {
             s.append(txt.substring(idx, m.start() - idx));
             String xml = m.group("jump");
-            String abbrvLower = mTagRegex.matcher(xml).replaceAll("").replace(" ", "").toLowerCase();
-            if (mAbbrvSeq.contains(abbrvLower)) {
+            String abbrvLower = tagRegex.matcher(xml).replaceAll("").replace(" ", "").toLowerCase();
+            if (abbrvSeq.contains(abbrvLower)) {
                 idx = m.start() + xml.length();
-                xml = mAbbrvRegex.matcher(xml).replaceAll("<w>$1.</w>");
-                if (mEndOfSentenceRegex.matcher(m.group("ctx")).find()) {
-                    if (mAbbrvSegSeq.contains(abbrvLower)) {
+                xml = abbrvRegex.matcher(xml).replaceAll("<w>$1.</w>");
+                if (endOfSentenceRegex.matcher(m.group("ctx")).find()) {
+                    if (abbrvSegSeq.contains(abbrvLower)) {
                         xml = xml + "</s><s>";
-                    } else if (mAbbrvNoSegSeq.contains(abbrvLower)) {
+                    } else if (abbrvNoSegSeq.contains(abbrvLower)) {
                         xml += "<!s/>";
                     }
                 }
@@ -93,13 +143,12 @@ public class Rules
                 idx = m.start() + xml.length();
             }
             s.append(xml);
-            //m = regex.matcher() .Match(txt, idx); // !!!
         }
         s.append(txt.substring(idx, txt.length() - idx));
         return s.toString();
     }
 
-    private static HashSet<String> LoadList(String name) {
+    private static HashSet<String> loadList(String name) {
         HashSet<String> set = new HashSet<String>();
         try {
             File file = new File(Rules.class.getClassLoader().getResource(name).getFile());
@@ -116,7 +165,7 @@ public class Rules
         return set;
     }
 
-    private static ArrayList<TokenizerRegex> LoadRules(String resName) {
+    private static ArrayList<TokenizerRegex> loadRules(String resName) {
         Pattern splitRegex = Pattern.compile("^(?<regex>.*)((--)|(==))\\>(?<rhs>.*)$");
         ArrayList<TokenizerRegex> rules = new ArrayList<TokenizerRegex>();
         ClassLoader classLoader = Rules.class.getClassLoader();
@@ -129,13 +178,13 @@ public class Rules
                     int opt = Pattern.MULTILINE;
                     if (line.contains("-->")) { opt |= Pattern.CASE_INSENSITIVE; }
                     TokenizerRegex tknRegex = new TokenizerRegex();
-                    tknRegex.mVal = line.contains("$val");
-                    tknRegex.mTxt = line.contains("$txt");
+                    tknRegex.val = line.contains("$val");
+                    tknRegex.txt = line.contains("$txt");
                     Matcher matcher = splitRegex.matcher(line);
                     if (matcher.find()) {
                         try {
-                            tknRegex.mRegex = Pattern.compile(matcher.group("regex").trim(), opt);
-                            tknRegex.mRhs = matcher.group("rhs").trim();
+                            tknRegex.regex = Pattern.compile(matcher.group("regex").trim(), opt);
+                            tknRegex.rhs = matcher.group("rhs").trim();
                             rules.add(tknRegex);
                         } catch (Exception e) {
                             System.err.println("Warning: Cannot parse line \"" + line + "\"");
@@ -152,20 +201,20 @@ public class Rules
         return rules;
     }
 
-    private static String ExecRules(String text, ArrayList<TokenizerRegex> rules) {
+    private static String execRules(String text, ArrayList<TokenizerRegex> rules) {
         for (TokenizerRegex tknRegex : rules) {
-            if (!tknRegex.mVal && !tknRegex.mTxt) {
-                text = tknRegex.mRegex.matcher(text).replaceAll(tknRegex.mRhs);
+            if (!tknRegex.val && !tknRegex.txt) {
+                text = tknRegex.regex.matcher(text).replaceAll(tknRegex.rhs);
             } else {
-                Matcher m = tknRegex.mRegex.matcher(text);
+                Matcher m = tknRegex.regex.matcher(text);
                 StringBuffer sb = new StringBuffer();
                 while (m.find()) {
-                    String replTxt = tknRegex.mRhs;
-                    if (tknRegex.mVal) {
+                    String replTxt = tknRegex.rhs;
+                    if (tknRegex.val) {
                         replTxt = replTxt.replace("$val", m.group());
                     }
-                    if (tknRegex.mTxt) {
-                        replTxt = replTxt.replace("$txt", mTagRegex.matcher(m.group()).replaceAll(""));
+                    if (tknRegex.txt) {
+                        replTxt = replTxt.replace("$txt", tagRegex.matcher(m.group()).replaceAll(""));
                     }
                     m.appendReplacement(sb, replTxt);
                 }

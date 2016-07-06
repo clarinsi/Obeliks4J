@@ -22,3 +22,5 @@ out/
 *.bak
 *.ncb
 *.log
+
+*.class
