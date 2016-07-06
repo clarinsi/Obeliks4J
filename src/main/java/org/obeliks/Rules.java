@@ -19,7 +19,7 @@
  *
  ***************************************************************************/
 
-package org.obeliks.tokenizer;
+package org.obeliks;
 
 import java.util.ArrayList;
 import java.util.Collections;

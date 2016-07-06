@@ -1,7 +1,5 @@
 package org.obeliks;
 
-import org.obeliks.tokenizer.Rules;
-
 public class Tokenizer
 {
     public static void main(String [] args) {
