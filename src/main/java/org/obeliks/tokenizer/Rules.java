@@ -56,6 +56,10 @@ public class Rules
         = loadList("ListOExclCS.txt");
     private static HashSet<String> abbrvSeg
         = loadList("ListOSeg.txt");
+    private static HashSet<String> abbrvAll
+        = loadList("ListOAll.txt");
+    private static HashSet<String> abbrvAllCS
+        = loadList("ListOAllCS.txt");
 
     private static ArrayList<Integer> abbrvSeqLen
         = new ArrayList<Integer>();
@@ -68,6 +72,8 @@ public class Rules
         = Pattern.compile("^<[wc]>[\\p{Lu}\"»“‘'0-9]$");
     private static Pattern abbrvExclRegex
         = Pattern.compile("(?<step><w>(?<word>\\p{L}+)</w><c>\\.</c>(?<tail><S/>)?)(?<ctx>(</[ps]>)|(<[wc]>.))");
+    private static Pattern abbrvOtherRegex
+        = Pattern.compile("(?<step><w>(?<word>\\p{L}+)</w><c>\\.</c>(?<tail><S/>)?)<[wc]>[:,;0-9\\p{Ll}]");
 
     static {
         HashSet<Integer> lengths = new HashSet<Integer>();
@@ -88,13 +94,13 @@ public class Rules
             xml = processAbbrvSeq(xml, len);
         }
         xml = processAbbrvExcl(xml);
-        //xml = processAbbrvOther(xml);
+        xml = processAbbrvOther(xml);
         xml = execRules(xml, tokRulesPart2);
         xml = xml.replace("<!s/>", "");
         return "<text>" + xml + "</text>";
     }
 
-    static String processAbbrvExcl(String txt) {
+    private static String processAbbrvExcl(String txt) {
         int idx = 0;
         StringBuilder s = new StringBuilder();
         Matcher m = abbrvExclRegex.matcher(txt);
@@ -119,7 +125,7 @@ public class Rules
         return s.toString();
     }
 
-    static String processAbbrvSeq(String txt, int seqLen) {
+    private static String processAbbrvSeq(String txt, int seqLen) {
         int idx = 0;
         StringBuilder s = new StringBuilder();
         Pattern regex = Pattern.compile("(?<jump>(?<step><w>\\p{L}+</w><c>\\.</c>(<S/>)?)(<w>\\p{L}+</w><c>\\.</c>(<S/>)?){" + (seqLen - 1) + "})(?<ctx>(</[ps]>)|(<[wc]>.))");
@@ -163,6 +169,28 @@ public class Rules
             e.printStackTrace();
         }
         return set;
+    }
+
+    private static String processAbbrvOther(String txt) {
+        int idx = 0;
+        StringBuilder s = new StringBuilder();
+        Matcher m = abbrvOtherRegex.matcher(txt);
+        while (m.find(idx)) {
+            s.append(txt.substring(idx, m.start() - idx));
+            String xml;
+            String word = m.group("word");
+            String wordLower = word.toLowerCase();
+            if (abbrvAll.contains(wordLower) || abbrvAllCS.contains(word)) {
+                xml = "<w>" + m.group("word") + ".</w>" + m.group("tail");
+                idx = m.start() + m.group("step").length();
+            } else {
+                xml = m.group("step");
+                idx = m.start() + xml.length();
+            }
+            s.append(xml);
+        }
+        s.append(txt.substring(idx, txt.length() - idx));
+        return s.toString();
     }
 
     private static ArrayList<TokenizerRegex> loadRules(String resName) {
