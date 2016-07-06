@@ -105,7 +105,7 @@ public class Rules
         StringBuilder s = new StringBuilder();
         Matcher m = abbrvExclRegex.matcher(txt);
         while (m.find(idx)) {
-            s.append(txt.substring(idx, m.start() - idx));
+            s.append(txt.substring(idx, m.start() - 1));
             String xml;
             String word = m.group("word");
             String wordLower = word.toLowerCase();
@@ -121,7 +121,7 @@ public class Rules
             }
             s.append(xml);
         }
-        s.append(txt.substring(idx, txt.length() - idx));
+        s.append(txt.substring(idx, txt.length() - 1));
         return s.toString();
     }
 
@@ -131,7 +131,7 @@ public class Rules
         Pattern regex = Pattern.compile("(?<jump>(?<step><w>\\p{L}+</w><c>\\.</c>(<S/>)?)(<w>\\p{L}+</w><c>\\.</c>(<S/>)?){" + (seqLen - 1) + "})(?<ctx>(</[ps]>)|(<[wc]>.))");
         Matcher m = regex.matcher(txt);
         while (m.find(idx)) {
-            s.append(txt.substring(idx, m.start() - idx));
+            s.append(txt.substring(idx, m.start() - 1));
             String xml = m.group("jump");
             String abbrvLower = tagRegex.matcher(xml).replaceAll("").replace(" ", "").toLowerCase();
             if (abbrvSeq.contains(abbrvLower)) {
@@ -150,7 +150,7 @@ public class Rules
             }
             s.append(xml);
         }
-        s.append(txt.substring(idx, txt.length() - idx));
+        s.append(txt.substring(idx, txt.length() - 1));
         return s.toString();
     }
 
@@ -176,7 +176,7 @@ public class Rules
         StringBuilder s = new StringBuilder();
         Matcher m = abbrvOtherRegex.matcher(txt);
         while (m.find(idx)) {
-            s.append(txt.substring(idx, m.start() - idx));
+            s.append(txt.substring(idx, m.start() - 1));
             String xml;
             String word = m.group("word");
             String wordLower = word.toLowerCase();
@@ -189,7 +189,7 @@ public class Rules
             }
             s.append(xml);
         }
-        s.append(txt.substring(idx, txt.length() - idx));
+        s.append(txt.substring(idx, txt.length() - 1));
         return s.toString();
     }
 
