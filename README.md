@@ -6,12 +6,12 @@ Linux
 
 Compile
 ```
-TODO
+[...]/Obeliks4J$ javac src/main/java/org/obeliks/*.java -d target/classes && cp src/main/resources/* target/classes
 ```
 
 Run
 ```
-TODO
+[...]/Obeliks4J$ java -cp target/classes org.obeliks.Tokenizer TODO: arguments
 ```
 
 Windows
@@ -20,6 +20,7 @@ Windows
 Compile
 ```
 [...]\Obeliks4J>javac src\main\java\org\obeliks\*.java -d target\classes
+[...]\Obeliks4J>copy src\main\resources\*.* target\classes
 ```
 
 Run
