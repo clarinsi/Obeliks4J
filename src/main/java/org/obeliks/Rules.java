@@ -15,7 +15,7 @@
  *  Desc:     Segmentation and tokenization rules for Slovene
  *  Created:  Jul-2016
  *
- *  Authors: Miha Grcar, Simon Krek, Kaja Dobrovoljc
+ *  Authors:  Miha Grcar, Simon Krek, Kaja Dobrovoljc
  *
  ***************************************************************************/
 

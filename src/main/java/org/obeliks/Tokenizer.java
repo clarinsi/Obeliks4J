@@ -1,70 +1,67 @@
+/*==========================================================================;
+ *
+ *  Projekt Sporazumevanje v slovenskem jeziku:
+ *    http://www.slovenscina.eu/Vsebine/Sl/Domov/Domov.aspx
+ *  Project Communication in Slovene:
+ *    http://www.slovenscina.eu/Vsebine/En/Domov/Domov.aspx
+ *
+ *  Avtorske pravice za to izdajo programske opreme ureja licenca
+ *    Creative Commons Priznanje avtorstva-Nekomercialno-Brez predelav 2.5
+ *  This work is licenced under the Creative Commons
+ *    Attribution-NonCommercial-NoDerivs 2.5 licence
+ *
+ *  File:     Tokenizer.java
+ *  Desc:     Executes segmentation and tokenization from command line
+ *  Created:  Jul-2016
+ *
+ *  Authors:  Miha Grcar
+ *
+ ***************************************************************************/
+
 package org.obeliks;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FilenameFilter;
 import java.io.InputStreamReader;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
-import java.nio.file.PathMatcher;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
 public class Tokenizer
 {
-    private static String locate(String path, String[] searchPattern) {
-        path = path.trim();
-        if (path.isEmpty()) { return null; }
-        if (!path.contains(File.separator)) { path = "." + File.separator + path; }
-        // is it a folder?
-        if (new File(path).isDirectory()) { searchPattern[0] = "*.*"; return path; }
-        // must be a search pattern
-        int splitAt = path.lastIndexOf(File.separator);
-        searchPattern[0] = path.substring(splitAt + 1);
-        path = path.substring(0, splitAt);
-        if (new File(path).isDirectory()) { return path; }
-        return null;
-    }
-
-    private static void processFiles(String path) {
-        System.out.println("Process files " + path);
-        String[] searchPattern = new String[1];
-        path = locate(path, searchPattern);
-        //System.out.println("Path: " + path + " ; Pattern: " + searchPattern[0]);
-        final PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + searchPattern[0]);
-        if (path == null) {
-            System.err.println("Warning: Option -if used without an argument.");
-            return;
-        }
-        File[] files = new File(path).listFiles(new FilenameFilter() {
-            public boolean accept(File dir, String name) {
-                return matcher.matches(Paths.get(name));
-            }
-        });
-        System.out.println(files.length);
-        for (File file : files) {
-            System.out.println(file.toString());
+    private static void processFile(String fileName) {
+        try {
+            String contents = new String(Files.readAllBytes(Paths.get(fileName)), StandardCharsets.UTF_8);
+            processText(contents);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
-    public static void main(String [] args) {
+    private static void processText(String text) {
+        System.out.println(Rules.tokenize(text));
+    }
+
+    public static void main(String[] args) {
         Hashtable<String, ArrayList<String>> params = new Hashtable<String, ArrayList<String>>();
         ArrayList<String> texts = new ArrayList<String>();
         for (int i = 0; i < args.length; i++) {
-            String arg = args[i].toLowerCase();
+            String arg = args[i];
             if (arg.startsWith("-")) {
                 arg = arg.substring(1);
-                String val = "";
-                if (i + 1 < args.length && !arg.equals("sif")) {
-                    val = args[i++ + 1];
+                ArrayList<String> vals = new ArrayList<String>();
+                if (!arg.equals("sif") && !arg.equals("-")) {
+                    int j = i + 1;
+                    while (j < args.length && !args[j].startsWith("-")) {
+                        vals.add(args[j++]);
+                    }
+                    i = j - 1;
                 }
                 if (params.containsKey(arg)) {
-                    params.get(arg).add(val);
+                    params.get(arg).addAll(vals);
                 } else {
-                    ArrayList<String> list = new ArrayList<String>();
-                    list.add(val);
-                    params.put(arg, list);
+                    params.put(arg, vals);
                 }
             } else {
                 texts.add(arg);
@@ -72,12 +69,12 @@ public class Tokenizer
         }
         boolean readFromStdIn = true;
         for (String text : texts) {
-            System.out.println("Process text " + text);
+            processText(text);
             readFromStdIn = false;
         }
         if (params.containsKey("if")) {
-            for (String pattern : params.get("if")) {
-                processFiles(pattern);
+            for (String fileName : params.get("if")) {
+                processFile(fileName);
                 readFromStdIn = false;
             }
         }
@@ -89,16 +86,14 @@ public class Tokenizer
             try {
                 while ((inputStr = bufReader.readLine()) != null) {
                     if (readFileNames) {
-                        processFiles(inputStr);
+                        processFile(inputStr);
                     } else {
-                        System.out.println("Process text " + inputStr);
+                        processText(inputStr);
                     }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
-
-        System.out.println(Rules.tokenize("To je stavek miha@sowalabs.com."));
     }
 }
