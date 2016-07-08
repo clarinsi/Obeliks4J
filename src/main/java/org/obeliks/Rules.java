@@ -90,12 +90,17 @@ public class Rules
 
     public static String tokenize(String text) {
         String xml = execRules(text, tokRulesPart1);
+        //System.out.println(xml);
         for (int len : abbrvSeqLen) {
             xml = processAbbrvSeq(xml, len);
+            //System.out.println(xml);
         }
         xml = processAbbrvExcl(xml);
+        //System.out.println(xml);
         xml = processAbbrvOther(xml);
+        //System.out.println(xml);
         xml = execRules(xml, tokRulesPart2);
+        //System.out.println(xml);
         xml = xml.replace("<!s/>", "");
         return "<text>" + xml + "</text>";
     }
@@ -105,7 +110,7 @@ public class Rules
         StringBuilder s = new StringBuilder();
         Matcher m = abbrvExclRegex.matcher(txt);
         while (m.find(idx)) {
-            s.append(txt.substring(idx, m.start() - 1));
+            s.append(txt.substring(idx, m.start()));
             String xml;
             String word = m.group("word");
             String wordLower = word.toLowerCase();
@@ -121,17 +126,18 @@ public class Rules
             }
             s.append(xml);
         }
-        s.append(txt.substring(idx, txt.length() - 1));
+        s.append(txt.substring(idx, txt.length()));
         return s.toString();
     }
 
     private static String processAbbrvSeq(String txt, int seqLen) {
+        //System.out.println(seqLen);
         int idx = 0;
         StringBuilder s = new StringBuilder();
         Pattern regex = Pattern.compile("(?<jump>(?<step><w>\\p{L}+</w><c>\\.</c>(<S/>)?)(<w>\\p{L}+</w><c>\\.</c>(<S/>)?){" + (seqLen - 1) + "})(?<ctx>(</[ps]>)|(<[wc]>.))");
         Matcher m = regex.matcher(txt);
         while (m.find(idx)) {
-            s.append(txt.substring(idx, m.start() - 1));
+            s.append(txt.substring(idx, m.start()));
             String xml = m.group("jump");
             String abbrvLower = tagRegex.matcher(xml).replaceAll("").replace(" ", "").toLowerCase();
             if (abbrvSeq.contains(abbrvLower)) {
@@ -150,7 +156,7 @@ public class Rules
             }
             s.append(xml);
         }
-        s.append(txt.substring(idx, txt.length() - 1));
+        s.append(txt.substring(idx, txt.length()));
         return s.toString();
     }
 
@@ -176,7 +182,7 @@ public class Rules
         StringBuilder s = new StringBuilder();
         Matcher m = abbrvOtherRegex.matcher(txt);
         while (m.find(idx)) {
-            s.append(txt.substring(idx, m.start() - 1));
+            s.append(txt.substring(idx, m.start()));
             String xml;
             String word = m.group("word");
             String wordLower = word.toLowerCase();
@@ -189,16 +195,15 @@ public class Rules
             }
             s.append(xml);
         }
-        s.append(txt.substring(idx, txt.length() - 1));
+        s.append(txt.substring(idx, txt.length()));
         return s.toString();
     }
 
     private static ArrayList<TokenizerRegex> loadRules(String resName) {
         Pattern splitRegex = Pattern.compile("^(?<regex>.*)((--)|(==))\\>(?<rhs>.*)$");
         ArrayList<TokenizerRegex> rules = new ArrayList<TokenizerRegex>();
-        ClassLoader classLoader = Rules.class.getClassLoader();
         try {
-            File file = new File(classLoader.getResource(resName).getFile());
+            File file = new File(Rules.class.getClassLoader().getResource(resName).getFile());
             Scanner scanner = new Scanner(file);
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine().trim();
@@ -233,6 +238,7 @@ public class Rules
         for (TokenizerRegex tknRegex : rules) {
             if (!tknRegex.val && !tknRegex.txt) {
                 text = tknRegex.regex.matcher(text).replaceAll(tknRegex.rhs);
+                //System.out.println(text);
             } else {
                 Matcher m = tknRegex.regex.matcher(text);
                 StringBuffer sb = new StringBuffer();
@@ -248,6 +254,7 @@ public class Rules
                 }
                 m.appendTail(sb);
                 text = sb.toString();
+                //System.out.println(text);
             }
         }
         return text;
