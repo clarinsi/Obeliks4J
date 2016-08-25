@@ -5,10 +5,9 @@
  *  Project Communication in Slovene:
  *    http://www.slovenscina.eu/Vsebine/En/Domov/Domov.aspx
  *
- *  Avtorske pravice za to izdajo programske opreme ureja licenca
- *    Creative Commons Priznanje avtorstva-Nekomercialno-Brez predelav 2.5
- *  This work is licenced under the Creative Commons
- *    Attribution-NonCommercial-NoDerivs 2.5 licence
+ *  Avtorske pravice za to izdajo programske opreme ureja licenca MIT
+ *  This work is licenced under The MIT License
+ *    http://opensource.org/licenses/MIT
  *
  *  File:     Tokenizer.java
  *  Desc:     Executes segmentation and tokenization from command line

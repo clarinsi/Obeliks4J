@@ -5,10 +5,9 @@
  *  Project Communication in Slovene:
  *    http://www.slovenscina.eu/Vsebine/En/Domov/Domov.aspx
  *
- *  Avtorske pravice za to izdajo programske opreme ureja licenca
- *    Creative Commons Priznanje avtorstva-Nekomercialno-Brez predelav 2.5
- *  This work is licenced under the Creative Commons
- *    Attribution-NonCommercial-NoDerivs 2.5 licence
+ *  Avtorske pravice za to izdajo programske opreme ureja licenca MIT
+ *  This work is licenced under The MIT License
+ *    http://opensource.org/licenses/MIT
  *
  *  File:     Rules.java
  *  Original: Rules.cs (Dec-2010)
@@ -90,17 +89,12 @@ public class Rules
 
     public static String tokenize(String text) {
         String xml = execRules(text, tokRulesPart1);
-        //System.out.println(xml);
         for (int len : abbrvSeqLen) {
             xml = processAbbrvSeq(xml, len);
-            //System.out.println(xml);
         }
         xml = processAbbrvExcl(xml);
-        //System.out.println(xml);
         xml = processAbbrvOther(xml);
-        //System.out.println(xml);
         xml = execRules(xml, tokRulesPart2);
-        //System.out.println(xml);
         xml = xml.replace("<!s/>", "");
         return "<text>" + xml + "</text>";
     }
@@ -131,7 +125,6 @@ public class Rules
     }
 
     private static String processAbbrvSeq(String txt, int seqLen) {
-        //System.out.println(seqLen);
         int idx = 0;
         StringBuilder s = new StringBuilder();
         Pattern regex = Pattern.compile("(?<jump>(?<step><w>\\p{L}+</w><c>\\.</c>(<S/>)?)(<w>\\p{L}+</w><c>\\.</c>(<S/>)?){" + (seqLen - 1) + "})(?<ctx>(</[ps]>)|(<[wc]>.))");
@@ -238,7 +231,6 @@ public class Rules
         for (TokenizerRegex tknRegex : rules) {
             if (!tknRegex.val && !tknRegex.txt) {
                 text = tknRegex.regex.matcher(text).replaceAll(tknRegex.rhs);
-                //System.out.println(text);
             } else {
                 Matcher m = tknRegex.regex.matcher(text);
                 StringBuffer sb = new StringBuffer();
@@ -254,7 +246,6 @@ public class Rules
                 }
                 m.appendTail(sb);
                 text = sb.toString();
-                //System.out.println(text);
             }
         }
         return text;
