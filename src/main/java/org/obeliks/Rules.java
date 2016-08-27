@@ -201,7 +201,7 @@ public class Rules
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine().trim();
                 if (!line.startsWith("#") && !line.isEmpty()) {
-                    int opt = Pattern.MULTILINE;
+                    int opt = 0;
                     if (line.contains("-->")) { opt |= Pattern.CASE_INSENSITIVE; }
                     TokenizerRegex tknRegex = new TokenizerRegex();
                     tknRegex.val = line.contains("$val");
