@@ -96,7 +96,7 @@ public class Rules
         xml = processAbbrvOther(xml);
         xml = execRules(xml, tokRulesPart2);
         xml = xml.replace("<!s/>", "");
-        return "<text>" + xml + "</text>";
+        return xml;
     }
 
     private static String processAbbrvExcl(String txt) {

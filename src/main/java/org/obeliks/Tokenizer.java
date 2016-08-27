@@ -26,6 +26,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Tokenizer
 {
@@ -38,8 +40,62 @@ public class Tokenizer
         }
     }
 
+    private static Pattern ampPattern
+        = Pattern.compile("&(amp;)?");
+    private static Pattern ltPattern
+        = Pattern.compile("<|(&lt;)");
+    private static Pattern gtPattern
+        = Pattern.compile(">|(&gt;)");
+
+    private static int indexOf(String str, String substr, int fromIdx, String[] val) {
+        val[0] = "";
+        Pattern pattern = null;
+        if (substr.equals("&amp;")) {
+            pattern = ampPattern;
+        } else if (substr.equals("&lt;")) {
+            pattern = ltPattern;
+        } else if (substr.equals("&gt;")) {
+            pattern = gtPattern;
+        }
+        if (pattern != null) {
+            Matcher m = pattern.matcher(str);
+            if (m.find(fromIdx)) {
+                val[0] = m.group();
+                return m.start();
+            } else {
+                return -1;
+            }
+        }
+        val[0] = substr;
+        return str.indexOf(substr, fromIdx);
+    }
+
+    private static void processPara(String para, int startIdx) {
+        //System.out.println("\"" + para + "\" at " + startIdx);
+        String tokensXml = Rules.tokenize(para);
+        System.out.println(tokensXml);
+        Pattern token = Pattern.compile("<[wc]>([^<]+)</[wc]>");
+        Matcher m = token.matcher(tokensXml);
+        int idx = 0;
+        while (m.find()) {
+            String val = m.group(1);
+            String[] actualVal = new String[1];
+            int idxOfToken = indexOf(para, val, idx, actualVal);
+            if (idxOfToken == -1) {
+                System.err.println("WARNING: Cannot compute token index.");
+            }
+            idx = Math.max(idx, idxOfToken + actualVal[0].length());
+            idxOfToken += startIdx + 1;
+            System.out.println(idxOfToken + "-" + (idxOfToken + actualVal[0].length() - 1) + "\t" + actualVal[0]);
+        }
+    }
+
     private static void processText(String text) {
-        System.out.println(Rules.tokenize(text));
+        Pattern para = Pattern.compile("[^\\n]+", Pattern.MULTILINE);
+        Matcher m = para.matcher(text);
+        while (m.find()) {
+            processPara(m.group(), m.start());
+        }
     }
 
     public static void main(String[] args) {
