@@ -31,10 +31,10 @@ import java.util.regex.Pattern;
 
 public class Tokenizer
 {
-    private static void processFile(String fileName) {
+    private static void processFile(String fileName, int[] np) {
         try {
             String contents = new String(Files.readAllBytes(Paths.get(fileName)), StandardCharsets.UTF_8);
-            processText(contents);
+            processText(contents, np);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -70,31 +70,37 @@ public class Tokenizer
         return str.indexOf(substr, fromIdx);
     }
 
-    private static void processPara(String para, int startIdx) {
+    private static void processPara(String para, int startIdx, int np) {
         //System.out.println("\"" + para + "\" at " + startIdx);
         String tokensXml = Rules.tokenize(para);
-        System.out.println(tokensXml);
-        Pattern token = Pattern.compile("<[wc]>([^<]+)</[wc]>");
+        //System.out.println(tokensXml);
+        Pattern token = Pattern.compile("<s>|<[wc]>([^<]+)</[wc]>");
         Matcher m = token.matcher(tokensXml);
         int idx = 0;
+        int ns = 0, nt = 0;
         while (m.find()) {
-            String val = m.group(1);
-            String[] actualVal = new String[1];
-            int idxOfToken = indexOf(para, val, idx, actualVal);
-            if (idxOfToken == -1) {
-                System.err.println("WARNING: Cannot compute token index.");
+            String val = m.group();
+            if (val.equals("<s>")) {
+                ns++; nt = 0;
+            } else {
+                val = m.group(1);
+                String[] actualVal = new String[1];
+                int idxOfToken = indexOf(para, val, idx, actualVal);
+                if (idxOfToken == -1) {
+                    System.err.println("Warning: Cannot compute token index.");
+                }
+                idx = Math.max(idx, idxOfToken + actualVal[0].length());
+                idxOfToken += /*startIdx +*/ 1;
+                System.out.println(np + "." + ns + "." + ++nt + "." + idxOfToken + "-" + (idxOfToken + actualVal[0].length() - 1) + "\t" + actualVal[0]);
             }
-            idx = Math.max(idx, idxOfToken + actualVal[0].length());
-            idxOfToken += startIdx + 1;
-            System.out.println(idxOfToken + "-" + (idxOfToken + actualVal[0].length() - 1) + "\t" + actualVal[0]);
         }
     }
 
-    private static void processText(String text) {
+    private static void processText(String text, int[] np) {
         Pattern para = Pattern.compile("[^\\n]+", Pattern.MULTILINE);
         Matcher m = para.matcher(text);
         while (m.find()) {
-            processPara(m.group(), m.start());
+            processPara(m.group(), m.start(), ++np[0]);
         }
     }
 
@@ -123,13 +129,14 @@ public class Tokenizer
             }
         }
         boolean readFromStdIn = true;
+        int[] np = new int[1];
         for (String text : texts) {
-            processText(text);
+            processText(text, np);
             readFromStdIn = false;
         }
         if (params.containsKey("if")) {
             for (String fileName : params.get("if")) {
-                processFile(fileName);
+                processFile(fileName, np);
                 readFromStdIn = false;
             }
         }
@@ -141,9 +148,9 @@ public class Tokenizer
             try {
                 while ((inputStr = bufReader.readLine()) != null) {
                     if (readFileNames) {
-                        processFile(inputStr);
+                        processFile(inputStr, np);
                     } else {
-                        processText(inputStr);
+                        processText(inputStr, np);
                     }
                 }
             } catch (Exception e) {

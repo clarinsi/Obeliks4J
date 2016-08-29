@@ -7,26 +7,48 @@ Sentence splitting & tokenization
 Linux
 ---
 
-Compile
+Compile (execute from `Obeliks4J`)
 ```
-[...]/Obeliks4J$ javac src/main/java/org/obeliks/*.java -d target/classes && cp src/main/resources/* target/classes
+javac src/main/java/org/obeliks/*.java -d target/classes && cp src/main/resources/* target/classes
 ```
 
-Run
+Tokenize texts 
 ```
-[...]/Obeliks4J$ java -cp target/classes org.obeliks.Tokenizer TODO: arguments
+java -cp target/classes org.obeliks.Tokenizer "To je stavek." "Tudi to je stavek."
+```
+or
+```
+echo "To je stavek." "Tudi to je stavek." | java -cp target/classes org.obeliks.Tokenizer
+```
+
+Tokenize texts from files 
+```
+java -cp target\classes org.obeliks.Tokenizer -if text1.txt text2.txt text3.txt
+```
+or
+```
+cat text*.txt | java -cp target\classes org.obeliks.Tokenizer
 ```
 
 Windows
 ---
 
-Compile
+Compile (execute from `Obeliks4J`)
 ```
-[...]\Obeliks4J>javac src\main\java\org\obeliks\*.java -d target\classes
-[...]\Obeliks4J>copy src\main\resources\*.* target\classes
+javac src\main\java\org\obeliks\*.java -d target\classes
+copy src\main\resources\*.* target\classes
 ```
 
-Run
+Tokenize texts 
 ```
-[...]\Obeliks4J>java -cp target\classes org.obeliks.Tokenizer TODO: arguments
+java -cp target\classes org.obeliks.Tokenizer "To je stavek." "Tudi to je stavek."
+```
+
+Tokenize texts from files 
+```
+java -cp target\classes org.obeliks.Tokenizer -if text1.txt text2.txt text3.txt
+```
+or
+```
+java -cp target\classes org.obeliks.Tokenizer -if text*.txt
 ```
