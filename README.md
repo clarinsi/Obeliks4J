@@ -23,7 +23,7 @@ echo -e "To je stavek.\nTudi to je stavek." | java -cp target/classes org.obelik
 
 Tokenize to output file
 ```
-java -cp target\classes org.obeliks.Tokenizer "To je stavek." "Tudi to je stavek." -o output.txt
+java -cp target/classes org.obeliks.Tokenizer "To je stavek." "Tudi to je stavek." -o output.txt
 ```
 or
 ```
@@ -32,15 +32,15 @@ echo -e "To je stavek.\nTudi to je stavek." | java -cp target/classes org.obelik
 
 Tokenize from files 
 ```
-java -cp target\classes org.obeliks.Tokenizer -if text*.txt
+java -cp target/classes org.obeliks.Tokenizer -if text*.txt
 ```
 or
 ```
-cat text*.txt | java -cp target\classes org.obeliks.Tokenizer
+cat text*.txt | java -cp target/classes org.obeliks.Tokenizer
 ```
 or
 ```
-ls -A1 text*.txt | java -cp target\classes org.obeliks.Tokenizer -ifs
+ls -A1 text*.txt | java -cp target/classes org.obeliks.Tokenizer -sif
 ```
 
 Windows
