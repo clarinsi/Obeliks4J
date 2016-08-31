@@ -18,16 +18,29 @@ java -cp target/classes org.obeliks.Tokenizer "To je stavek." "Tudi to je stavek
 ```
 or
 ```
-echo "To je stavek." "Tudi to je stavek." | java -cp target/classes org.obeliks.Tokenizer
+echo -e "To je stavek.\nTudi to je stavek." | java -cp target/classes org.obeliks.Tokenizer
 ```
 
-Tokenize texts from files 
+Tokenize to output file
 ```
-java -cp target\classes org.obeliks.Tokenizer -if text1.txt text2.txt text3.txt
+java -cp target\classes org.obeliks.Tokenizer "To je stavek." "Tudi to je stavek." -o output.txt
+```
+or
+```
+echo -e "To je stavek.\nTudi to je stavek." | java -cp target/classes org.obeliks.Tokenizer > output.txt
+```
+
+Tokenize from files 
+```
+java -cp target\classes org.obeliks.Tokenizer -if text*.txt
 ```
 or
 ```
 cat text*.txt | java -cp target\classes org.obeliks.Tokenizer
+```
+or
+```
+ls -A1 text*.txt | java -cp target\classes org.obeliks.Tokenizer -ifs
 ```
 
 Windows
