@@ -44,7 +44,12 @@ Tokenize texts
 java -cp target\classes org.obeliks.Tokenizer "To je stavek." "Tudi to je stavek."
 ```
 
-Tokenize texts from files 
+Tokenize to output file
+```
+java -cp target\classes org.obeliks.Tokenizer "To je stavek." "Tudi to je stavek." -o output.txt
+```
+
+Tokenize from files 
 ```
 java -cp target\classes org.obeliks.Tokenizer -if text1.txt text2.txt text3.txt
 ```

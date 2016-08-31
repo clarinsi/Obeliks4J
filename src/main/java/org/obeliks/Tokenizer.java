@@ -20,7 +20,10 @@
 package org.obeliks;
 
 import java.io.BufferedReader;
+import java.io.FileOutputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -31,13 +34,9 @@ import java.util.regex.Pattern;
 
 public class Tokenizer
 {
-    private static void processFile(String fileName, int[] np) {
-        try {
-            String contents = new String(Files.readAllBytes(Paths.get(fileName)), StandardCharsets.UTF_8);
-            processText(contents, np);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    private static void processFile(String fileName, int[] np, OutputStream os) throws Exception {
+        String contents = new String(Files.readAllBytes(Paths.get(fileName)), StandardCharsets.UTF_8);
+        processText(contents, np, os);
     }
 
     private static Pattern ampPattern
@@ -70,14 +69,12 @@ public class Tokenizer
         return str.indexOf(substr, fromIdx);
     }
 
-    private static void processPara(String para, int startIdx, int np) {
-        //System.out.println("\"" + para + "\" at " + startIdx);
+    private static void processPara(String para, int startIdx, int np, OutputStream os) throws Exception {
         String tokensXml = Rules.tokenize(para);
-        //System.out.println(tokensXml);
         Pattern token = Pattern.compile("<s>|<[wc]>([^<]+)</[wc]>");
         Matcher m = token.matcher(tokensXml);
         int idx = 0;
-        int ns = 0, nt = 0;
+        int ns = 1, nt = 0;
         while (m.find()) {
             String val = m.group();
             if (val.equals("<s>")) {
@@ -91,71 +88,77 @@ public class Tokenizer
                 }
                 idx = Math.max(idx, idxOfToken + actualVal[0].length());
                 idxOfToken += /*startIdx +*/ 1;
-                System.out.println(np + "." + ns + "." + ++nt + "." + idxOfToken + "-" + (idxOfToken + actualVal[0].length() - 1) + "\t" + actualVal[0]);
+                String line = np + "." + ns + "." + (++nt) + "." + idxOfToken + "-" + (idxOfToken + actualVal[0].length() - 1) + "\t" + actualVal[0] + System.lineSeparator();
+                os.write(line.getBytes(Charset.forName("UTF-8")));
             }
         }
     }
 
-    private static void processText(String text, int[] np) {
+    private static void processText(String text, int[] np, OutputStream os) throws Exception {
         Pattern para = Pattern.compile("[^\\n]+", Pattern.MULTILINE);
         Matcher m = para.matcher(text);
         while (m.find()) {
-            processPara(m.group(), m.start(), ++np[0]);
+            processPara(m.group(), m.start(), ++np[0], os);
         }
     }
 
     public static void main(String[] args) {
-        Hashtable<String, ArrayList<String>> params = new Hashtable<String, ArrayList<String>>();
-        ArrayList<String> texts = new ArrayList<String>();
-        for (int i = 0; i < args.length; i++) {
-            String arg = args[i];
-            if (arg.startsWith("-")) {
-                arg = arg.substring(1);
-                ArrayList<String> vals = new ArrayList<String>();
-                if (!arg.equals("sif") && !arg.equals("-")) {
-                    int j = i + 1;
-                    while (j < args.length && !args[j].startsWith("-")) {
-                        vals.add(args[j++]);
+        try {
+            Hashtable<String, ArrayList<String>> params = new Hashtable<String, ArrayList<String>>();
+            ArrayList<String> texts = new ArrayList<String>();
+            for (int i = 0; i < args.length; i++) {
+                String arg = args[i];
+                if (arg.startsWith("-")) {
+                    arg = arg.substring(1);
+                    ArrayList<String> vals = new ArrayList<String>();
+                    if (!arg.equals("sif") && !arg.equals("-")) {
+                        int j = i + 1;
+                        while (j < args.length && !args[j].startsWith("-")) {
+                            vals.add(args[j++]);
+                        }
+                        i = j - 1;
                     }
-                    i = j - 1;
-                }
-                if (params.containsKey(arg)) {
-                    params.get(arg).addAll(vals);
+                    if (params.containsKey(arg)) {
+                        params.get(arg).addAll(vals);
+                    } else {
+                        params.put(arg, vals);
+                    }
                 } else {
-                    params.put(arg, vals);
+                    texts.add(arg);
                 }
-            } else {
-                texts.add(arg);
             }
-        }
-        boolean readFromStdIn = true;
-        int[] np = new int[1];
-        for (String text : texts) {
-            processText(text, np);
-            readFromStdIn = false;
-        }
-        if (params.containsKey("if")) {
-            for (String fileName : params.get("if")) {
-                processFile(fileName, np);
+            boolean readFromStdIn = true;
+            int[] np = new int[1];
+            OutputStream os = System.out;
+            if (params.containsKey("o")) { // output file name
+                String fileName = params.get("o").get(0);
+                os = new FileOutputStream(fileName);
+            }
+            for (String text : texts) {
+                processText(text, np, os);
                 readFromStdIn = false;
             }
-        }
-        if (readFromStdIn) {
-            boolean readFileNames = params.containsKey("sif");
-            InputStreamReader isReader = new InputStreamReader(System.in);
-            BufferedReader bufReader = new BufferedReader(isReader);
-            String inputStr;
-            try {
+            if (params.containsKey("if")) {
+                for (String fileName : params.get("if")) {
+                    processFile(fileName, np, os);
+                    readFromStdIn = false;
+                }
+            }
+            if (readFromStdIn) {
+                boolean readFileNames = params.containsKey("sif");
+                InputStreamReader isReader = new InputStreamReader(System.in);
+                BufferedReader bufReader = new BufferedReader(isReader);
+                String inputStr;
                 while ((inputStr = bufReader.readLine()) != null) {
                     if (readFileNames) {
-                        processFile(inputStr, np);
+                        processFile(inputStr, np, os);
                     } else {
-                        processText(inputStr, np);
+                        processText(inputStr, np, os);
                     }
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }
