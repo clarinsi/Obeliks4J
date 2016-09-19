@@ -19,6 +19,16 @@
 
 package org.obeliks;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import java.io.BufferedReader;
 import java.io.FileOutputStream;
 import java.io.InputStreamReader;
@@ -69,26 +79,60 @@ public class Tokenizer
         return str.indexOf(substr, fromIdx);
     }
 
-    private static void processPara(String para, int startIdx, int np, OutputStream os) throws Exception {
+    private static Document CreateTeiDoc() throws Exception {
+        Document teiDoc = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+        Element root = teiDoc.createElement("TEI");
+        root.setAttribute("xmlns", "http://www.tei-c.org/ns/1.0");
+        root.setAttribute("xml:lang", "sl");
+        root.appendChild(teiDoc.createElement("text"));
+        teiDoc.appendChild(root);
+        return teiDoc;
+    }
+
+    private static void processPara(String para, int startIdx, int np, OutputStream os, Document teiDoc) throws Exception {
+        Element node;
+        System.out.println(para);
         String tokensXml = Rules.tokenize(para);
-        Pattern token = Pattern.compile("<s>|<[wc]>([^<]+)</[wc]>");
+        System.out.println(tokensXml);
+        Node parentNode = teiDoc.getElementsByTagName("text").item(0);
+        node = teiDoc.createElement("p");
+        parentNode = parentNode.appendChild(node);
+        node.setAttribute("xml:id", "" + np);
+        Pattern token = Pattern.compile("<S/>|</?s>|<([wc])>([^<]+)</[wc]>");
         Matcher m = token.matcher(tokensXml);
         int idx = 0;
         int ns = 1, nt = 0;
         while (m.find()) {
             String val = m.group();
             if (val.equals("<s>")) {
-                ns++; nt = 0;
+                node = teiDoc.createElement("s");
+                node.setAttribute("xml:id", np + "." + ns);
+                nt = 0;
+                parentNode.appendChild(node);
+                parentNode = parentNode.getLastChild();
+            } else if (val.equals("</s>")) {
+                parentNode = parentNode.getParentNode();
+                ns++;
+            } else if (val.equals("<S/>")) {
+                Element spcNode = teiDoc.createElement("c");
+                spcNode.setTextContent(" ");
+                parentNode.appendChild(spcNode);
             } else {
-                val = m.group(1);
+                val = m.group(2);
                 String[] actualVal = new String[1];
                 int idxOfToken = indexOf(para, val, idx, actualVal);
                 if (idxOfToken == -1) {
                     System.err.println("Warning: Cannot compute token index.");
                 }
                 idx = Math.max(idx, idxOfToken + actualVal[0].length());
-                idxOfToken += /*startIdx +*/ 1;
-                String line = np + "." + ns + "." + (++nt) + "." + idxOfToken + "-" + (idxOfToken + actualVal[0].length() - 1) + "\t" + actualVal[0] + System.lineSeparator();
+                idxOfToken++;
+                nt++;
+                String line = np + "." + ns + "." + nt + "." + idxOfToken + "-" + (idxOfToken + actualVal[0].length() - 1) + "\t" + actualVal[0] + System.lineSeparator();
+                String tagName = m.group(1).equals("c") ? "pc" : "w";
+                node = teiDoc.createElement(tagName);
+                parentNode.appendChild(node);
+                parentNode.getLastChild().setTextContent(actualVal[0]);
+                node.setAttribute("xml:id", np + "." + ns + ".t" + nt);
                 os.write(line.getBytes(Charset.forName("UTF-8")));
             }
         }
@@ -97,9 +141,16 @@ public class Tokenizer
     private static void processText(String text, int[] np, OutputStream os) throws Exception {
         Pattern para = Pattern.compile("[^\\n]+", Pattern.MULTILINE);
         Matcher m = para.matcher(text);
+        Document teiDoc = CreateTeiDoc();
         while (m.find()) {
-            processPara(m.group(), m.start(), ++np[0], os);
+            processPara(m.group(), m.start(), ++np[0], os, teiDoc);
         }
+        StreamResult consoleResult = new StreamResult(System.out);
+        Transformer transformer = TransformerFactory.newInstance().newTransformer();
+        DOMSource source = new DOMSource(teiDoc);
+        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+        transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+        transformer.transform(source, consoleResult);
     }
 
     public static void main(String[] args) {
@@ -111,7 +162,7 @@ public class Tokenizer
                 if (arg.startsWith("-")) {
                     arg = arg.substring(1);
                     ArrayList<String> vals = new ArrayList<String>();
-                    if (!arg.equals("sif") && !arg.equals("-")) {
+                    if (!args.equals("tei") && !arg.equals("sif") && !arg.equals("-")) {
                         int j = i + 1;
                         while (j < args.length && !args[j].startsWith("-")) {
                             vals.add(args[j++]);
