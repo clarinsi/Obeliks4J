@@ -44,9 +44,9 @@ import java.util.regex.Pattern;
 
 public class Tokenizer
 {
-    private static void processFile(String fileName, int[] np, OutputStream os) throws Exception {
+    private static void processFile(String fileName, int[] np, OutputStream os, Document teiDoc) throws Exception {
         String contents = new String(Files.readAllBytes(Paths.get(fileName)), StandardCharsets.UTF_8);
-        processText(contents, np, os);
+        processText(contents, np, os, teiDoc);
     }
 
     private static Pattern ampPattern
@@ -91,13 +91,16 @@ public class Tokenizer
 
     private static void processPara(String para, int startIdx, int np, OutputStream os, Document teiDoc) throws Exception {
         Element node;
-        System.out.println(para);
+        //System.out.println(para);
         String tokensXml = Rules.tokenize(para);
-        System.out.println(tokensXml);
-        Node parentNode = teiDoc.getElementsByTagName("text").item(0);
-        node = teiDoc.createElement("p");
-        parentNode = parentNode.appendChild(node);
-        node.setAttribute("xml:id", "" + np);
+        //System.out.println(tokensXml);
+        Node parentNode = null;
+        if (teiDoc != null) {
+            parentNode = teiDoc.getElementsByTagName("text").item(0);
+            node = teiDoc.createElement("p");
+            parentNode = parentNode.appendChild(node);
+            node.setAttribute("xml:id", "" + np);
+        }
         Pattern token = Pattern.compile("<S/>|</?s>|<([wc])>([^<]+)</[wc]>");
         Matcher m = token.matcher(tokensXml);
         int idx = 0;
@@ -105,18 +108,24 @@ public class Tokenizer
         while (m.find()) {
             String val = m.group();
             if (val.equals("<s>")) {
-                node = teiDoc.createElement("s");
-                node.setAttribute("xml:id", np + "." + ns);
                 nt = 0;
-                parentNode.appendChild(node);
-                parentNode = parentNode.getLastChild();
+                if (teiDoc != null) {
+                    node = teiDoc.createElement("s");
+                    node.setAttribute("xml:id", np + "." + ns);
+                    parentNode.appendChild(node);
+                    parentNode = parentNode.getLastChild();
+                }
             } else if (val.equals("</s>")) {
-                parentNode = parentNode.getParentNode();
+                if (teiDoc != null) {
+                    parentNode = parentNode.getParentNode();
+                }
                 ns++;
             } else if (val.equals("<S/>")) {
-                Element spcNode = teiDoc.createElement("c");
-                spcNode.setTextContent(" ");
-                parentNode.appendChild(spcNode);
+                if (teiDoc != null) {
+                    node = teiDoc.createElement("c");
+                    node.setTextContent(" ");
+                    parentNode.appendChild(node);
+                }
             } else {
                 val = m.group(2);
                 String[] actualVal = new String[1];
@@ -129,28 +138,24 @@ public class Tokenizer
                 nt++;
                 String line = np + "." + ns + "." + nt + "." + idxOfToken + "-" + (idxOfToken + actualVal[0].length() - 1) + "\t" + actualVal[0] + System.lineSeparator();
                 String tagName = m.group(1).equals("c") ? "pc" : "w";
-                node = teiDoc.createElement(tagName);
-                parentNode.appendChild(node);
-                parentNode.getLastChild().setTextContent(actualVal[0]);
-                node.setAttribute("xml:id", np + "." + ns + ".t" + nt);
-                os.write(line.getBytes(Charset.forName("UTF-8")));
+                if (teiDoc != null) {
+                    node = teiDoc.createElement(tagName);
+                    parentNode.appendChild(node);
+                    parentNode.getLastChild().setTextContent(actualVal[0]);
+                    node.setAttribute("xml:id", np + "." + ns + ".t" + nt);
+                } else {
+                    os.write(line.getBytes(Charset.forName("UTF-8")));
+                }
             }
         }
     }
 
-    private static void processText(String text, int[] np, OutputStream os) throws Exception {
+    private static void processText(String text, int[] np, OutputStream os, Document teiDoc) throws Exception {
         Pattern para = Pattern.compile("[^\\n]+", Pattern.MULTILINE);
         Matcher m = para.matcher(text);
-        Document teiDoc = CreateTeiDoc();
         while (m.find()) {
             processPara(m.group(), m.start(), ++np[0], os, teiDoc);
         }
-        StreamResult consoleResult = new StreamResult(System.out);
-        Transformer transformer = TransformerFactory.newInstance().newTransformer();
-        DOMSource source = new DOMSource(teiDoc);
-        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-        transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
-        transformer.transform(source, consoleResult);
     }
 
     public static void main(String[] args) {
@@ -162,7 +167,7 @@ public class Tokenizer
                 if (arg.startsWith("-")) {
                     arg = arg.substring(1);
                     ArrayList<String> vals = new ArrayList<String>();
-                    if (!args.equals("tei") && !arg.equals("sif") && !arg.equals("-")) {
+                    if (!arg.equals("tei") && !arg.equals("sif") && !arg.equals("-")) {
                         int j = i + 1;
                         while (j < args.length && !args[j].startsWith("-")) {
                             vals.add(args[j++]);
@@ -178,6 +183,7 @@ public class Tokenizer
                     texts.add(arg);
                 }
             }
+            Document teiDoc = params.containsKey("tei") ? CreateTeiDoc() : null;
             boolean readFromStdIn = true;
             int[] np = new int[1];
             OutputStream os = System.out;
@@ -186,12 +192,12 @@ public class Tokenizer
                 os = new FileOutputStream(fileName);
             }
             for (String text : texts) {
-                processText(text, np, os);
+                processText(text, np, os, teiDoc);
                 readFromStdIn = false;
             }
             if (params.containsKey("if")) {
                 for (String fileName : params.get("if")) {
-                    processFile(fileName, np, os);
+                    processFile(fileName, np, os, teiDoc);
                     readFromStdIn = false;
                 }
             }
@@ -202,11 +208,19 @@ public class Tokenizer
                 String inputStr;
                 while ((inputStr = bufReader.readLine()) != null) {
                     if (readFileNames) {
-                        processFile(inputStr, np, os);
+                        processFile(inputStr, np, os, teiDoc);
                     } else {
-                        processText(inputStr, np, os);
+                        processText(inputStr, np, os, teiDoc);
                     }
                 }
+            }
+            if (teiDoc != null) {
+                StreamResult consoleResult = new StreamResult(os);
+                Transformer transformer = TransformerFactory.newInstance().newTransformer();
+                DOMSource source = new DOMSource(teiDoc);
+                transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+                transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+                transformer.transform(source, consoleResult);
             }
         } catch (Exception e) {
             e.printStackTrace();
