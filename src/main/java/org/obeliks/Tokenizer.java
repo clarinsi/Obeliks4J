@@ -22,7 +22,6 @@ package org.obeliks;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
-
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
@@ -90,10 +89,9 @@ public class Tokenizer
     }
 
     private static void processPara(String para, int startIdx, int np, OutputStream os, Document teiDoc) throws Exception {
+        if (para.startsWith("\uFEFF")) { para = para.substring(1); }
         Element node;
-        //System.out.println(para);
         String tokensXml = Rules.tokenize(para);
-        //System.out.println(tokensXml);
         Node parentNode = null;
         if (teiDoc != null) {
             parentNode = teiDoc.getElementsByTagName("text").item(0);
@@ -141,7 +139,7 @@ public class Tokenizer
                 if (teiDoc != null) {
                     node = teiDoc.createElement(tagName);
                     parentNode.appendChild(node);
-                    parentNode.getLastChild().setTextContent(actualVal[0]);
+                    node.setTextContent(actualVal[0]);
                     node.setAttribute("xml:id", np + "." + ns + ".t" + nt);
                 } else {
                     os.write(line.getBytes(Charset.forName("UTF-8")));
