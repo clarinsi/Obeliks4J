@@ -87,6 +87,10 @@ public class Rules
         Collections.sort(abbrvSeqLen, Collections.reverseOrder());
     }
 
+    private static String EmptyIfNull(String val) {
+        return val != null ? val : "";
+    }
+
     public static String tokenize(String text) {
         String xml = execRules(text, tokRulesPart1);
         for (int len : abbrvSeqLen) {
@@ -106,16 +110,16 @@ public class Rules
         while (m.find(idx)) {
             s.append(txt.substring(idx, m.start()));
             String xml;
-            String word = m.group("word");
+            String word = EmptyIfNull(m.group("word"));
             String wordLower = word.toLowerCase();
             if (word.length() == 1 || abbrvExcl.contains(wordLower) || abbrvExclCS.contains(word)) {
-                xml = "<w>" + m.group("word") + ".</w>" + m.group("tail");
-                idx = m.start() + m.group("step").length();
-                if (abbrvSeg.contains(wordLower) && endOfSentenceRegex.matcher(m.group("ctx")).find()) {
+                xml = "<w>" + EmptyIfNull(m.group("word")) + ".</w>" + EmptyIfNull(m.group("tail"));
+                idx = m.start() + EmptyIfNull(m.group("step")).length();
+                if (abbrvSeg.contains(wordLower) && endOfSentenceRegex.matcher(EmptyIfNull(m.group("ctx"))).find()) {
                     xml += "</s><s>";
                 }
             } else {
-                xml = m.group("step");
+                xml = EmptyIfNull(m.group("step"));
                 idx = m.start() + xml.length();
             }
             s.append(xml);
@@ -131,12 +135,12 @@ public class Rules
         Matcher m = regex.matcher(txt);
         while (m.find(idx)) {
             s.append(txt.substring(idx, m.start()));
-            String xml = m.group("jump");
+            String xml = EmptyIfNull(m.group("jump"));
             String abbrvLower = tagRegex.matcher(xml).replaceAll("").replace(" ", "").toLowerCase();
             if (abbrvSeq.contains(abbrvLower)) {
                 idx = m.start() + xml.length();
                 xml = abbrvRegex.matcher(xml).replaceAll("<w>$1.</w>");
-                if (endOfSentenceRegex.matcher(m.group("ctx")).find()) {
+                if (endOfSentenceRegex.matcher(EmptyIfNull(m.group("ctx"))).find()) {
                     if (abbrvSegSeq.contains(abbrvLower)) {
                         xml = xml + "</s><s>";
                     } else if (abbrvNoSegSeq.contains(abbrvLower)) {
@@ -144,7 +148,7 @@ public class Rules
                     }
                 }
             } else {
-                xml = m.group("step");
+                xml = EmptyIfNull(m.group("step"));
                 idx = m.start() + xml.length();
             }
             s.append(xml);
@@ -177,13 +181,13 @@ public class Rules
         while (m.find(idx)) {
             s.append(txt.substring(idx, m.start()));
             String xml;
-            String word = m.group("word");
+            String word = EmptyIfNull(m.group("word"));
             String wordLower = word.toLowerCase();
             if (abbrvAll.contains(wordLower) || abbrvAllCS.contains(word)) {
-                xml = "<w>" + m.group("word") + ".</w>" + m.group("tail");
-                idx = m.start() + m.group("step").length();
+                xml = "<w>" + EmptyIfNull(m.group("word")) + ".</w>" + EmptyIfNull(m.group("tail"));
+                idx = m.start() + EmptyIfNull(m.group("step")).length();
             } else {
-                xml = m.group("step");
+                xml = EmptyIfNull(m.group("step"));
                 idx = m.start() + xml.length();
             }
             s.append(xml);
@@ -209,8 +213,8 @@ public class Rules
                     Matcher matcher = splitRegex.matcher(line);
                     if (matcher.find()) {
                         try {
-                            tknRegex.regex = Pattern.compile(matcher.group("regex").trim(), opt);
-                            tknRegex.rhs = matcher.group("rhs").trim();
+                            tknRegex.regex = Pattern.compile(EmptyIfNull(matcher.group("regex")).trim(), opt);
+                            tknRegex.rhs = EmptyIfNull(matcher.group("rhs")).trim();
                             rules.add(tknRegex);
                         } catch (Exception e) {
                             System.err.println("Warning: Cannot parse line \"" + line + "\"");
@@ -237,10 +241,10 @@ public class Rules
                 while (m.find()) {
                     String replTxt = tknRegex.rhs;
                     if (tknRegex.val) {
-                        replTxt = replTxt.replace("$val", m.group());
+                        replTxt = replTxt.replace("$val", EmptyIfNull(m.group()));
                     }
                     if (tknRegex.txt) {
-                        replTxt = replTxt.replace("$txt", tagRegex.matcher(m.group()).replaceAll(""));
+                        replTxt = replTxt.replace("$txt", tagRegex.matcher(EmptyIfNull(m.group())).replaceAll(""));
                     }
                     m.appendReplacement(sb, replTxt);
                 }
