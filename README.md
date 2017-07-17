@@ -43,6 +43,20 @@ or
 ls -A1 text*.txt | java -cp target/classes org.obeliks.Tokenizer -sif
 ```
 
+Output XML-TEI
+```
+java -cp target/classes org.obeliks.Tokenizer "To je stavek." "Tudi to je stavek." -o output.txt -tei // test this
+```
+or
+```
+echo -e "To je stavek.\nTudi to je stavek." | java -cp target/classes org.obeliks.Tokenizer -tei > output.txt // test this
+```
+
+Process multiple files
+```
+TBD
+```
+
 Windows
 ---
 
