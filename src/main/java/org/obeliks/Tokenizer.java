@@ -103,6 +103,8 @@ public class Tokenizer
         Matcher m = token.matcher(tokensXml);
         int idx = 0;
         int ns = 1, nt = 0;
+        int oldNs = 1;
+        boolean hasOutput = false;
         while (m.find()) {
             String val = m.group();
             if (val.equals("<s>")) {
@@ -142,9 +144,17 @@ public class Tokenizer
                     node.setTextContent(actualVal[0]);
                     node.setAttribute("xml:id", np + "." + ns + ".t" + nt);
                 } else {
+                    if (ns != oldNs) {
+                        os.write(System.lineSeparator().getBytes(Charset.forName("UTF-8")));
+                        oldNs = ns;
+                    }
                     os.write(line.getBytes(Charset.forName("UTF-8")));
+                    hasOutput = true;
                 }
             }
+        }
+        if (teiDoc == null && hasOutput) {
+            os.write(System.lineSeparator().getBytes(Charset.forName("UTF-8")));
         }
     }
 
