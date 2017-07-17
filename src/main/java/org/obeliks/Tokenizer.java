@@ -131,7 +131,7 @@ public class Tokenizer
                 String[] actualVal = new String[1];
                 int idxOfToken = indexOf(para, val, idx, actualVal);
                 if (idxOfToken == -1) {
-                    System.err.println("Warning: Cannot compute token index.");
+                    System.err.println("Warning: Cannot compute token index. Token: \"" + val + "\" Text: " + para);
                 }
                 idx = Math.max(idx, idxOfToken + actualVal[0].length());
                 idxOfToken++;
