@@ -77,7 +77,7 @@
 <w>(([0-9]+)|([ivxlcdmIVXLCDM]+))</w><c>\.</c>(?<t><c>[-–—]</c><w>(([0-9]+)|([ivxlcdmIVXLCDM]+)).</w>) ==> <w>$1.</w>${t}
 
 # Tropicje - brez presledka - velika zacetnica
-<c>.</c><c>.</c><c>.</c><w>(\p{Lu}) ==> <c>.</c><c>.</c><c>.</c></s><s><w>$1
+<c>\.</c><c>\.</c><c>\.</c><w>(\p{Lu}) ==> <c>.</c><c>.</c><c>.</c></s><s><w>$1
 
 #
 # *** End of Part 2 ***
