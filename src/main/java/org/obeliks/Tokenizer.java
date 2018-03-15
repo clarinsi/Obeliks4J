@@ -92,12 +92,13 @@ public class Tokenizer
         if (para.startsWith("\uFEFF")) { para = para.substring(1); }
         Element node;
         String tokensXml = Rules.tokenize(para);
+        String idPrefix = "F";
         Node parentNode = null;
         if (teiDoc != null) {
             parentNode = teiDoc.getElementsByTagName("text").item(0);
             node = teiDoc.createElement("p");
             parentNode = parentNode.appendChild(node);
-            node.setAttribute("xml:id", "" + np);
+            node.setAttribute("xml:id", idPrefix + np);
         }
         Pattern token = Pattern.compile("<S/>|</?s>|<([wc])>([^<]+)</[wc]>");
         Matcher m = token.matcher(tokensXml);
@@ -111,7 +112,7 @@ public class Tokenizer
                 nt = 0;
                 if (teiDoc != null) {
                     node = teiDoc.createElement("s");
-                    node.setAttribute("xml:id", np + "." + ns);
+                    node.setAttribute("xml:id", idPrefix + np + "." + ns);
                     parentNode.appendChild(node);
                     parentNode = parentNode.getLastChild();
                 }
@@ -142,7 +143,7 @@ public class Tokenizer
                     node = teiDoc.createElement(tagName);
                     parentNode.appendChild(node);
                     node.setTextContent(actualVal[0]);
-                    node.setAttribute("xml:id", np + "." + ns + ".t" + nt);
+                    node.setAttribute("xml:id", idPrefix + np + "." + ns + ".t" + nt);
                 } else {
                     if (ns != oldNs) {
                         os.write(System.lineSeparator().getBytes(Charset.forName("UTF-8")));
