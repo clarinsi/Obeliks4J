@@ -40,6 +40,8 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.List;
+import java.util.UUID;
 
 public class Tokenizer
 {
@@ -90,6 +92,11 @@ public class Tokenizer
 
     private static void processPara(String para, int startIdx, int np, OutputStream os, Document teiDoc) throws Exception {
         if (para.startsWith("\uFEFF")) { para = para.substring(1); }
+        if (teiDoc == null) {
+            String newpar_id = "# newpar id = NEWPAR_UUID_" + String.format("%08X", UUID.randomUUID().hashCode());
+            os.write(newpar_id.getBytes(Charset.forName("UTF-8")));
+            os.write(System.lineSeparator().getBytes(Charset.forName("UTF-8")));
+        }
         Element node;
         String tokensXml = Rules.tokenize(para);
         String idPrefix = "F";
@@ -101,11 +108,22 @@ public class Tokenizer
             node.setAttribute("xml:id", idPrefix + np);
         }
         Pattern token = Pattern.compile("<S/>|</?s>|<([wc])>([^<]+)</[wc]>");
+        Pattern stoken = Pattern.compile("<s>.*?</s>");
         Matcher m = token.matcher(tokensXml);
+        Matcher s = stoken.matcher(tokensXml);
         int idx = 0;
         int ns = 1, nt = 0;
         int oldNs = 1;
         boolean hasOutput = false;
+        List<String> orgText = new ArrayList<String>();
+        while (s.find()) {
+            String val = s.group();
+            val = val.replace("<s>", ""); val = val.replace("</s>", "");
+            val = val.replace("<w>", ""); val = val.replace("</w>", "");
+            val = val.replace("<c>", ""); val = val.replace("</c>", "");
+            val = val.replace("<S/>", " ");
+            orgText.add(val.trim());
+        }
         while (m.find()) {
             String val = m.group();
             if (val.equals("<s>")) {
@@ -115,6 +133,18 @@ public class Tokenizer
                     node.setAttribute("xml:id", idPrefix + np + "." + ns);
                     parentNode.appendChild(node);
                     parentNode = parentNode.getLastChild();
+                }
+                else {
+                    if (ns != oldNs) {
+                        os.write(System.lineSeparator().getBytes(Charset.forName("UTF-8")));
+                        oldNs = ns;
+                    }
+                    String sent_id = "# sent_id = SENT_UUID_" + String.format("%08X", UUID.randomUUID().hashCode());
+                    os.write(sent_id.getBytes(Charset.forName("UTF-8")));
+                    os.write(System.lineSeparator().getBytes(Charset.forName("UTF-8")));
+                    os.write("# text = ".getBytes(Charset.forName("UTF-8")));
+                    os.write(orgText.get(ns-1).getBytes(Charset.forName("UTF-8")));
+                    os.write(System.lineSeparator().getBytes(Charset.forName("UTF-8")));
                 }
             } else if (val.equals("</s>")) {
                 if (teiDoc != null) {
@@ -145,10 +175,6 @@ public class Tokenizer
                     node.setTextContent(actualVal[0]);
                     node.setAttribute("xml:id", idPrefix + np + "." + ns + ".t" + nt);
                 } else {
-                    if (ns != oldNs) {
-                        os.write(System.lineSeparator().getBytes(Charset.forName("UTF-8")));
-                        oldNs = ns;
-                    }
                     os.write(line.getBytes(Charset.forName("UTF-8")));
                     hasOutput = true;
                 }
