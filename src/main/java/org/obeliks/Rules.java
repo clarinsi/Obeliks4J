@@ -246,7 +246,7 @@ public class Rules
                     if (tknRegex.txt) {
                         replTxt = replTxt.replace("$txt", tagRegex.matcher(EmptyIfNull(m.group())).replaceAll(""));
                     }
-                    m.appendReplacement(sb, replTxt);
+                    m.appendReplacement(sb, Matcher.quoteReplacement(replTxt));
                 }
                 m.appendTail(sb);
                 text = sb.toString();
