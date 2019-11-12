@@ -40,11 +40,11 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.List;
-import java.util.UUID;
 
 public class Tokenizer
 {
+    public static Hashtable<String, ArrayList<String>> params = new Hashtable<String, ArrayList<String>>();
+
     private static void processFile(String fileName, int[] np, OutputStream os, Document teiDoc) throws Exception {
         String contents = new String(Files.readAllBytes(Paths.get(fileName)), StandardCharsets.UTF_8);
         processText(contents, np, os, teiDoc);
@@ -92,8 +92,8 @@ public class Tokenizer
 
     private static void processPara(String para, int startIdx, int np, OutputStream os, Document teiDoc) throws Exception {
         if (para.startsWith("\uFEFF")) { para = para.substring(1); }
-        if (teiDoc == null) {
-            String newpar_id = "# newpar id = NEWPAR_UUID_" + String.format("%08X", UUID.randomUUID().hashCode());
+        if (teiDoc == null && params.containsKey("c")) {
+            String newpar_id = "# newpar id = " + String.format("%d", np);
             os.write(newpar_id.getBytes(Charset.forName("UTF-8")));
             os.write(System.lineSeparator().getBytes(Charset.forName("UTF-8")));
         }
@@ -115,7 +115,7 @@ public class Tokenizer
         int ns = 1, nt = 0;
         int oldNs = 1;
         boolean hasOutput = false;
-        List<String> orgText = new ArrayList<String>();
+        ArrayList<String> orgText = new ArrayList<String>();
         while (s.find()) {
             String val = s.group();
             val = val.replace("<s>", ""); val = val.replace("</s>", "");
@@ -139,12 +139,14 @@ public class Tokenizer
                         os.write(System.lineSeparator().getBytes(Charset.forName("UTF-8")));
                         oldNs = ns;
                     }
-                    String sent_id = "# sent_id = SENT_UUID_" + String.format("%08X", UUID.randomUUID().hashCode());
-                    os.write(sent_id.getBytes(Charset.forName("UTF-8")));
-                    os.write(System.lineSeparator().getBytes(Charset.forName("UTF-8")));
-                    os.write("# text = ".getBytes(Charset.forName("UTF-8")));
-                    os.write(orgText.get(ns-1).getBytes(Charset.forName("UTF-8")));
-                    os.write(System.lineSeparator().getBytes(Charset.forName("UTF-8")));
+                    if (params.containsKey("c")) {
+                        String sent_id = "# sent_id = " + String.format("%d.%d", np, ns);
+                        os.write(sent_id.getBytes(Charset.forName("UTF-8")));
+                        os.write(System.lineSeparator().getBytes(Charset.forName("UTF-8")));
+                        os.write("# text = ".getBytes(Charset.forName("UTF-8")));
+                        os.write(orgText.get(ns-1).getBytes(Charset.forName("UTF-8")));
+                        os.write(System.lineSeparator().getBytes(Charset.forName("UTF-8")));
+                    }
                 }
             } else if (val.equals("</s>")) {
                 if (teiDoc != null) {
@@ -167,14 +169,26 @@ public class Tokenizer
                 idx = Math.max(idx, idxOfToken + actualVal[0].length());
                 idxOfToken++;
                 nt++;
-                String line = np + "." + ns + "." + nt + "." + idxOfToken + "-" + (idxOfToken + actualVal[0].length() - 1) + "\t" + actualVal[0] + System.lineSeparator();
-                String tagName = m.group(1).equals("c") ? "pc" : "w";
                 if (teiDoc != null) {
+                    String tagName = m.group(1).equals("c") ? "pc" : "w";
                     node = teiDoc.createElement(tagName);
                     parentNode.appendChild(node);
                     node.setTextContent(actualVal[0]);
                     node.setAttribute("xml:id", idPrefix + np + "." + ns + ".t" + nt);
                 } else {
+                    String line;
+                    if (params.containsKey("c")) {
+                        line = nt + "\t" + actualVal[0] + "\t_" + "\t_" + "\t_" + "\t_" + "\t_" + "\t_" + "\t_";
+                        if (idx < para.length() && para.toCharArray()[idx] == ' ') {
+                             line += "\t_" + System.lineSeparator();
+                        }
+                        else {
+                             line += "\tSpaceAfter=No" + System.lineSeparator();
+                        }
+                    }
+                    else {
+                        line = np + "." + ns + "." + nt + "." + idxOfToken + "-" + (idxOfToken + actualVal[0].length() - 1) + "\t" + actualVal[0] + System.lineSeparator();
+                    }
                     os.write(line.getBytes(Charset.forName("UTF-8")));
                     hasOutput = true;
                 }
@@ -195,8 +209,8 @@ public class Tokenizer
 
     public static void main(String[] args) {
         try {
-            Hashtable<String, ArrayList<String>> params = new Hashtable<String, ArrayList<String>>();
             ArrayList<String> texts = new ArrayList<String>();
+            // -o <name>, -if <name*>, -sif, -tei, -c
             for (int i = 0; i < args.length; i++) {
                 String arg = args[i];
                 if (arg.startsWith("-")) {
