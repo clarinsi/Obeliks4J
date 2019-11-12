@@ -176,15 +176,14 @@ public class Tokenizer
                     node.setTextContent(actualVal[0]);
                     node.setAttribute("xml:id", idPrefix + np + "." + ns + ".t" + nt);
                 } else {
-                    String line;
+                    String line, spaceAfter;
                     if (params.containsKey("c")) {
                         line = nt + "\t" + actualVal[0] + "\t_" + "\t_" + "\t_" + "\t_" + "\t_" + "\t_" + "\t_";
-                        if (idx < para.length() && para.toCharArray()[idx] == ' ') {
-                             line += "\t_" + System.lineSeparator();
+                        if (idx < para.length() && para.toCharArray()[idx] != ' ') {
+                            spaceAfter = "SpaceAfter=No";
                         }
-                        else {
-                             line += "\tSpaceAfter=No" + System.lineSeparator();
-                        }
+                        else spaceAfter = "_";
+                        line += "\t" + spaceAfter + System.lineSeparator();
                     }
                     else {
                         line = np + "." + ns + "." + nt + "." + idxOfToken + "-" + (idxOfToken + actualVal[0].length() - 1) + "\t" + actualVal[0] + System.lineSeparator();
