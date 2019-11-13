@@ -13,7 +13,7 @@
  *  Desc:     Executes segmentation and tokenization from command line
  *  Created:  Jul-2016
  *
- *  Authors:  Miha Grcar
+ *  Authors:  Miha Grcar, Matjaz Rihtar
  *
  ***************************************************************************/
 
@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.lang.Character;
 
 public class Tokenizer
 {
@@ -179,7 +180,7 @@ public class Tokenizer
                     String line, spaceAfter;
                     if (params.containsKey("c")) {
                         line = nt + "\t" + actualVal[0] + "\t_" + "\t_" + "\t_" + "\t_" + "\t_" + "\t_" + "\t_";
-                        if (idx < para.length() && para.toCharArray()[idx] != ' ') {
+                        if (idx < para.length() && !Character.isWhitespace(para.toCharArray()[idx])) {
                             spaceAfter = "SpaceAfter=No";
                         }
                         else spaceAfter = "_";
@@ -202,20 +203,27 @@ public class Tokenizer
         Pattern para = Pattern.compile("[^\\n]+", Pattern.MULTILINE);
         Matcher m = para.matcher(text);
         while (m.find()) {
-            processPara(m.group(), m.start(), ++np[0], os, teiDoc);
+            String val = m.group();
+            if (params.containsKey("d") && val.startsWith("# newdoc id = ")) {
+                os.write(val.getBytes(Charset.forName("UTF-8")));
+                os.write(System.lineSeparator().getBytes(Charset.forName("UTF-8")));
+                np[0] = 0;
+                continue;
+            }
+            processPara(val, m.start(), ++np[0], os, teiDoc);
         }
     }
 
     public static void main(String[] args) {
         try {
             ArrayList<String> texts = new ArrayList<String>();
-            // -o <name>, -if <name*>, -sif, -tei, -c
+            // -o <name>, -if <name*>, -sif, -tei, -c, -d
             for (int i = 0; i < args.length; i++) {
                 String arg = args[i];
                 if (arg.startsWith("-")) {
                     arg = arg.substring(1);
                     ArrayList<String> vals = new ArrayList<String>();
-                    if (!arg.equals("tei") && !arg.equals("sif") && !arg.equals("-")) {
+                    if (!arg.equals("sif") && !arg.equals("tei") && !arg.equals("c") && !arg.equals("d") && !arg.equals("-")) {
                         int j = i + 1;
                         while (j < args.length && !args[j].startsWith("-")) {
                             vals.add(args[j++]);
@@ -235,6 +243,12 @@ public class Tokenizer
             boolean readFromStdIn = true;
             int[] np = new int[1];
             OutputStream os = System.out;
+            if (params.containsKey("d")) {
+                if (!params.containsKey("c")) {
+                    ArrayList<String> vals = new ArrayList<String>();
+                    params.put("c", vals);
+                }
+            }
             if (params.containsKey("o")) { // output file name
                 String fileName = params.get("o").get(0);
                 os = new FileOutputStream(fileName);

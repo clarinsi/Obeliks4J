@@ -14,7 +14,7 @@
  *  Desc:     Segmentation and tokenization rules for Slovene
  *  Created:  Jul-2016
  *
- *  Authors:  Miha Grcar, Simon Krek, Kaja Dobrovoljc
+ *  Authors:  Miha Grcar, Simon Krek, Kaja Dobrovoljc, Matjaz Rihtar
  *
  ***************************************************************************/
 
@@ -27,6 +27,7 @@ import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.io.File;
+import java.io.InputStream;
 
 public class Rules
 {
@@ -160,8 +161,15 @@ public class Rules
     private static HashSet<String> loadList(String name) {
         HashSet<String> set = new HashSet<String>();
         try {
-            File file = new File(Rules.class.getClassLoader().getResource(name).getFile());
-            Scanner scanner = new Scanner(file);
+            Scanner scanner = null;
+            try {
+                InputStream stream = Rules.class.getResourceAsStream(name);
+                scanner = new Scanner(stream);
+            } catch (Exception e) { }
+            if (scanner == null) {
+                File file = new File(Rules.class.getResource(name).getFile());
+                scanner = new Scanner(file);
+            }
             while (scanner.hasNextLine()) {
                 String token = scanner.nextLine().trim();
                 if (!token.equals("") && !token.startsWith("#")) {
@@ -200,8 +208,15 @@ public class Rules
         Pattern splitRegex = Pattern.compile("^(?<regex>.*)((--)|(==))\\>(?<rhs>.*)$");
         ArrayList<TokenizerRegex> rules = new ArrayList<TokenizerRegex>();
         try {
-            File file = new File(Rules.class.getClassLoader().getResource(resName).getFile());
-            Scanner scanner = new Scanner(file);
+            Scanner scanner = null;
+            try {
+                InputStream stream = Rules.class.getResourceAsStream(resName);
+                scanner = new Scanner(stream);
+            } catch (Exception e) { }
+            if (scanner == null) {
+                File file = new File(Rules.class.getResource(resName).getFile());
+                scanner = new Scanner(file);
+            }
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine().trim();
                 if (!line.startsWith("#") && !line.isEmpty()) {
