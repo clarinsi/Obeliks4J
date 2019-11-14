@@ -123,6 +123,7 @@ public class Tokenizer
             val = val.replace("<w>", ""); val = val.replace("</w>", "");
             val = val.replace("<c>", ""); val = val.replace("</c>", "");
             val = val.replace("<S/>", " ");
+            val = val.replaceAll(" {2,}", " ");
             orgText.add(val.trim());
         }
         while (m.find()) {
